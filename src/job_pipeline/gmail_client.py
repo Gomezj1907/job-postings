@@ -5,7 +5,7 @@ from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 
-from job_pipeline.config import CREDENTIALS_DIR, load_settings
+from job_pipeline.config import CREDENTIALS_DIR, load_configs
 
 # If modifying these scopes, delete the file token.json.
 SCOPES = ["https://www.googleapis.com/auth/gmail.readonly"]
@@ -121,7 +121,7 @@ def _cred_check(interactive: bool = False) -> Credentials:
 
 
 if __name__ == "__main__":
-    s = load_settings()["gmail"]
+    s = load_configs()["gmail"]
     gmail = connect(interactive=True)
     emails = fetch_alert_emails(
         gmail=gmail,
@@ -130,5 +130,5 @@ if __name__ == "__main__":
         days=s["lookback_days"],
     )
     print(len(emails))
-    for e in emails:
+    for e in emails[:5]:
         print(e["sender"], "|", e["subject"])
