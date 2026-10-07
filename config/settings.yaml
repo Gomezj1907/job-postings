@@ -1,0 +1,7 @@
+gmail:
+  senders:
+    - jobalerts-noreply@linkedin.com
+    - jobs-noreply@linkedin.com
+  exclude_subjects:
+    - "has been created"
+  lookback_days: 7
