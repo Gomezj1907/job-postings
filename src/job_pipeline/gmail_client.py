@@ -1,10 +1,10 @@
-import os.path
+import base64
 from pathlib import Path
+
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
-from googleapiclient.errors import HttpError
 
 # If modifying these scopes, delete the file token.json.
 SCOPES = ["https://www.googleapis.com/auth/gmail.readonly"]
@@ -12,48 +12,82 @@ TOKEN = Path("credentials/token.json")
 CREDS = Path("credentials/credentials.json")
 
 
-def connect_gmail(creds, days = 7):
-  """Connects to my email account
-  """
-  creds = None
-  # The file token.json stores the user's access and refresh tokens, and is
-  # created automatically when the authorization flow completes for the first
-  # time.
-  if os.path.exists("token.json"):
-    creds = Credentials.from_authorized_user_file("token.json", SCOPES)
-  # If there are no (valid) credentials available, let the user log in.
-  if not creds or not creds.valid:
-    if creds and creds.expired and creds.refresh_token:
-      creds.refresh(Request())
-    else:
-      flow = InstalledAppFlow.from_client_secrets_file(
-          "credentials.json", SCOPES
-      )
-      creds = flow.run_local_server(port=0)
-    # Save the credentials for the next run
-    with open("token.json", "w") as token:
-      token.write(creds.to_json())
+def fetch_alert_emails(
+      gmail,
+      senders: list[str],
+      exclude_subjects: list[str],
+      days:int = 7,
+) -> list[dict]:
+    """Fetches emails from Gmail based on the provided criteria.
 
-  try:
-    # Call the Gmail API
-    service = build("gmail", "v1", credentials=creds)
-    results = service.users().labels().list(userId="me").execute()
-    labels = results.get("labels", [])
- 
-    if not labels:
-      print("No labels found.")
-      return
-    print("labels are available Yay!")
-    print("Labels:")
-    for label in labels:
-      print(label["name"])
+    Args:
+        gamail: Authenticated Gmail service instance.
+        senders: List of sender email addresses to filter by.
+        exclude_subjects: List of subject lines to exclude from results.
+        days: Number of days to look back for emails.
+    """
 
-  except HttpError as error:
-    # TODO(developer) - Handle errors from gmail API.
-    print(f"An error occurred: {error}")
+    query = f"from:({' OR '.join(senders)}) newer_than:{days}d"
+    for subject in exclude_subjects:
+        query += f" -subject:'{subject}'"
 
+    ids, page_token = [], None
+
+    while True:
+
+       res = gmail.users().messages.list(
+           userId = "me", q = query, pageToken = page_token
+           ).execute()
+
+       ids += [msg["id"] for msg in res.get("messages", [])]
+       page_token = res.get("nextPageToken")
+
+       if not page_token:
+           break
+
+    emails = []
+    for msg_id in ids:
+
+      msg = gmail.users().messages().get(user = "me", id = msg_id, format = "full").execute()
+      headers = {h["name"]: h["value"] for h in msg["payload"]["headers"]}
+      emails.append({
+         "id":msg_id,
+         "date": int(msg["internalDate"]),
+         "sender" : headers.get("From", ""),
+         "subject": headers.get("Subject", ""),
+         "body": _plain_text(msg["payload"])
+      })
+    return emails
+      
+       
+
+def _plain_text(payload: dict) -> str:
+    """Find the text/plain part of a message, however deeply nested."""
+
+    if payload.get("mimeType") == "text/plain" and payload["body"].get("data"):
+        
+        return base64.urlsafe_b64decode(payload["body"]["data"]).decode("utf-8", "replace")
+    
+    for part in payload.get("parts", []):
+        
+        text = _plain_text(part)
+
+        if text:
+            return text
+        
+    return ""
+
+
+def _connect(interactive: bool = False):
+
+  """ Returns authenticated Gmail service"""
+
+  creds = _cred_check(interactive = interactive)
+
+  return build("gmail", "v1", credentials=creds)
 
 def _cred_check(interactive: bool = True) -> Credentials:
+
   """Checks if the credentials are available and valid.
   """
 
