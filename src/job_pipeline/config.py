@@ -13,3 +13,8 @@ def load_configs() -> dict:
 
     with open(CONFIG_DIR / "settings.yaml", encoding = "utf-8") as f:
         return yaml.safe_load(f)
+
+def load_exclusions() -> dict:
+    """Load exclusion criteria from the exclusions.yaml file."""
+    with open(CONFIG_DIR / "exclusions.yaml", encoding = "utf-8") as f:
+        return yaml.safe_load(f)

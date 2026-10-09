@@ -1,0 +1,39 @@
+companies:
+  # Consulting
+  - Boston Consulting Group
+  - BCG
+  - EY
+  - PwC
+  - KPMG
+  - Accenture
+  - McKinsey
+  - Management Solutions
+  - Aimpoint Digital
+  - Aon
+  - Slalom
+  - Capgemini
+  - Empresa Confidencial
+
+  # IT services / outsourcing / staffing
+  - VASS
+  - INDI Staffing
+  - BairesDev
+  - Solvo Global
+  - CI&T
+  - Coderio
+  - hiberus
+  - Adecco
+  - Job Duck
+
+# Title words that signal the wrong role or seniority
+title_keywords:
+  - intern
+  - internship
+  - aprendiz
+  - practicante
+  - junior
+  - jr
+  - HR
+  - people
+  - recursos humanos
+  - talento humano
