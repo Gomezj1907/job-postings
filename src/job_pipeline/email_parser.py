@@ -6,7 +6,7 @@ from job_pipeline.models import JobCard
 log = logging.getLogger(__name__)
 
 JOB_ID = re.compile(r"/jobs/view/(\d+)")
-SOURCE = re.compile(r"trk=eml-email_([a-z]+?)(?:_\d+)?-")
+SOURCE = re.compile(r"trk=eml-email_([a-z_]+?)(?:_\d+)?-")
 ALERT_NAME = re.compile(r"^Your job alert for (.+)$")
 HEADER = re.compile(r"^(Your job alert for|A new job matches|New jobs match)")
 
@@ -58,6 +58,7 @@ def _parse_job_email(email: dict) -> list[JobCard]:
                 )
             else: 
                 log.warning("Not parsable card in email %s", email["id"])
+                start = i + 1
 
         elif _is_boundary(line):
             start = i + 1
