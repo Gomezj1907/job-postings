@@ -1,3 +1,9 @@
+"""
+Gmail client for fetching emails based on specific criteria.
+This module provides functions to connect to Gmail, fetch emails from specific senders, and exclude emails based on subject lines.
+It uses the Gmail API and requires OAuth2 credentials for authentication.
+"""
+
 import base64
 
 from google.auth.transport.requests import Request
@@ -121,14 +127,19 @@ def _cred_check(interactive: bool = False) -> Credentials:
 
 
 if __name__ == "__main__":
+    from job_pipeline.config import ROOT
+
     s = load_configs()["gmail"]
-    gmail = connect(interactive=True)
+    gmail = connect()
     emails = fetch_alert_emails(
-        gmail=gmail,
-        senders=s["senders"],
-        exclude_subjects=s["exclude_subjects"],
-        days=s["lookback_days"],
+        gmail, s["senders"], s["exclude_subjects"], s["lookback_days"]
     )
-    print(len(emails))
-    for e in emails[:5]:
-        print(e["sender"], "|", e["subject"])
+
+    out = ROOT / "tests" / "fixtures" / "emails"
+    out.mkdir(parents=True, exist_ok=True)
+    for e in emails:
+        (out / f"{e['id']}.txt").write_text(
+            f"SENDER: {e['sender']}\nSUBJECT: {e['subject']}\n\n{e['body']}",
+            encoding="utf-8",
+        )
+    print(f"Saved {len(emails)} emails to {out}")
