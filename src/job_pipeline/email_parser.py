@@ -76,24 +76,3 @@ def _is_boundary(line: str) -> bool:
 
 
 
-if __name__ == "__main__":
-    from job_pipeline.config import load_configs
-    from job_pipeline.config import load_exclusions
-    from job_pipeline.gmail_client import connect, fetch_alert_emails
-    from job_pipeline.filter_jobs import filter_jobs
-    s = load_configs()["gmail"]
-    exclusions = load_exclusions()
-    gmail = connect()
-    alert_emails = fetch_alert_emails(gmail, s["senders"], s["exclude_subjects"], s["lookback_days"])
-
-    cards = parse_emails(alert_emails)
-    #for card in cards:
-    #    print(card.job_id, "|", card.title, "|", card.company, "|", card.location, "|", card.source, "|", card.alert_name)
-
-    kept, dropped = filter_jobs(cards, exclusions)
-    print(f"Kept {len(kept)} cards, dropped {len(dropped)} cards")
-    for card, reason in dropped:
-        print(f"DROP  {reason:25} {card.company} | {card.title}")
-
-
-
