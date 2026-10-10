@@ -24,8 +24,8 @@ def run(days: int | None = None) -> None:
 
     exclusions = load_exclusions()
     kept, dropped = filter_jobs(new_cards, exclusions)
-    store.save_jobs(conn, kept, status="new")
-    store.save_jobs(conn, [card for card, _ in dropped], 
+    store.add_jobs(conn, kept, status="new")
+    store.add_jobs(conn, [card for card, _ in dropped], 
                     status="dropped", reason=[reason for _, reason in dropped])
 
     print(f"{len(alert_emails)} emails | {len(cards)} jobs | "

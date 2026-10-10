@@ -41,7 +41,7 @@ def seen_jobs(conn: sqlite3.Connection)-> set[str]:
     """
     
     conn.execute("SELECT job_id FROM jobs_seen")
-    return {row[0] for row in conn.fetchall()}
+    return {row[0] for row in conn.execute("SELECT job_id FROM jobs_seen")}
 
 def add_jobs(
         conn: sqlite3.Connection,
