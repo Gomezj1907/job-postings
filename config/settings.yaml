@@ -5,3 +5,9 @@ gmail:
   exclude_subjects:
     - "has been created"
   lookback_days: 7
+
+linkedin:
+  command: uvx
+  args: ["mcp-server-linkedin==4.26.2", "--no-auto-import"]
+  max_per_run: 60
+  delay_seconds: [4, 6]

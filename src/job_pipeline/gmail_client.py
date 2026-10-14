@@ -6,6 +6,7 @@ It uses the Gmail API and requires OAuth2 credentials for authentication.
 
 import base64
 
+from google.auth.exceptions import RefreshError
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
@@ -105,24 +106,30 @@ def _cred_check(interactive: bool = False) -> Credentials:
 
     creds = None
     if TOKEN.exists():
-        creds = Credentials.from_authorized_user_file(TOKEN, SCOPES)
+        creds = Credentials.from_authorized_user_file(str(TOKEN), SCOPES)
 
     if creds and creds.valid:
         return creds
 
     if creds and creds.expired and creds.refresh_token:
-        creds.refresh(Request())
+        try:
+            creds.refresh(Request())
+            TOKEN.write_text(creds.to_json())
+            return creds
+        except RefreshError:
+            TOKEN.unlink(missing_ok=True)  # Remove invalid token
+            creds = None  # Force re-authentication
 
-    elif interactive:
+        if not interactive:
+            raise RuntimeError(
+                "Token de Gmail inválido o ausente. Corre: uv run jobs run --interactive"
+            )
+
         flow = InstalledAppFlow.from_client_secrets_file(CREDS, SCOPES)
         creds = flow.run_local_server(port=0)
+        TOKEN.write_text(creds.to_json())
 
-    else:
-        raise RuntimeError(
-            "No valid email Gmail Token or creds found. Run script in interactive"
-        )
 
-    TOKEN.write_text(creds.to_json())
     return creds
 
 

@@ -20,6 +20,14 @@ CREATE TABLE IF NOT EXISTS jobs_seen (
     reason      TEXT             -- why it was dropped, if it was
 );
 """
+POSTINGS_SCHEMA = """
+CREATE TABLE IF NOT EXISTS postings (
+    job_id      TEXT PRIMARY KEY REFERENCES jobs_seen(job_id),
+    raw_text    TEXT,
+    apply_state TEXT,          -- None | applied | closed
+    fetched_at  TEXT NOT NULL
+);
+"""
 
 def connect() -> sqlite3.Connection:
     """
@@ -29,6 +37,7 @@ def connect() -> sqlite3.Connection:
     """
     conn = sqlite3.connect(DB_PATH)
     conn.execute(SCHEMA)
+    conn.execute(POSTINGS_SCHEMA)
     return conn
 
 def seen_jobs(conn: sqlite3.Connection)-> set[str]:
@@ -72,4 +81,25 @@ def add_jobs(
             "(job_id, title, company, location, source, alert_name, email_id, first_seen, status, reason) "
             "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             rows
+        )
+
+def pending_ids(conn: sqlite3.Connection, limit: int) -> list[str]:
+    """Kept jobs that don't have a posting yet, newest first."""
+    rows = conn.execute(
+        """SELECT j.job_id FROM jobs_seen j
+           LEFT JOIN postings p ON p.job_id = j.job_id
+           WHERE j.status = 'new' AND p.job_id IS NULL
+           ORDER BY j.first_seen DESC LIMIT ?""",
+        (limit,),
+    )
+    return [r[0] for r in rows]
+
+
+def save_posting(conn: sqlite3.Connection, job_id: str, raw_text: str,
+                 apply_state: str | None) -> None:
+    now = datetime.now(UTC).isoformat(timespec="seconds")
+    with conn:
+        conn.execute(
+            "INSERT OR REPLACE INTO postings VALUES (?, ?, ?, ?)",
+            (job_id, raw_text, apply_state, now),
         )
